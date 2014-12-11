@@ -1,6 +1,8 @@
 # emacs-haskell-config
 
-A quick and easy pre-configured Emacs for developing with Haskell. You
+The repo contains an Emacs configuration for developing with Haskell.
+It is accompanied with a guide (this README) on how to install its
+dependencies: the binaries that this config needs to function. You
 can use this to try out the Emacs support for Haskell, or use it as a
 base or to crib Elisp from, or whatever. The motivating use-case is
 that newbies tend to want something that just works that they can
@@ -19,6 +21,7 @@ flycheck support that uses the GHCi process next weekend.
 
 Dependencies are included or explicitly stated.
 
+
 ### License
 
 This program is free software: you can redistribute it and/or modify
@@ -34,68 +37,117 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+
 ## Prerequisites
 
 It's easier if you're running Linux or OS X. If you're on Windows,
 there is no guarantee whether anything described will work.
 
-You need GHC version GHC 7.8.2—7.8.3. Check that with:
+You need to have a recent version of GHC (7.8.2—7.8.3) and `cabal`
+installed. Also make sure your `~/.cabal/bin` is in your `$PATH`.
 
-    $ ghc --version
-    The Glorious Glasgow Haskell Compilation System, version 7.8.2
+Check that with:
 
-You need `cabal` installed. It shouldn't be particularly important
-which version you have as long as it isn't ancient.
+    ghc --version
+    cabal --version
+    echo $PATH
 
-    $ cabal --version
-    cabal-install version 1.20.0.3
-    using version 1.20.0.2 of the Cabal library
-
-Make sure your `~/.cabal/bin` is in your `PATH`.
 
 ## Download
 
 Run the following to clone this repo and its dependencies:
 
-    $ git clone https://github.com/chrisdone/emacs-haskell-config.git --recursive
+    git clone https://github.com/chrisdone/emacs-haskell-config.git --recursive
 
-That should take about a minute or two.
+It may take a while, depending on the speed of your internet
+connection.
 
-## Install
 
-Install structured-haskell-mode:
+## Install dependecies (Haskell packages)
 
-    $ cabal install packages/structured-haskell-mode/
+This repo specifies some submodules that have been downloaded
+because the `--recursive` flag was provided. These packages
+specify their own dependencies that in turn need to be fetched
+and built.
 
-Install ghci-ng:
+In case you use a [Stackage](http://www.stackage.org) snapshot
+as remote package repository for `cabal` then these depending
+packages cannot be found.  In that case you need to temporarily
+switch from Stackage to Hackage.
 
-    $ cabal install packages/ghci-ng/
 
-Install hindent:
+### Switch from Stackage to Hackage (only for Stackage users)
 
-    $ cabal install packages/hindent/
+First we create a "sandbox" to make sure we do not alter the
+global environment.
 
-Install haskell-docs:
+    cd emacs-haskell-config
+    cabal sanbox init
 
-    $ cabal install packages/haskell-docs/
+Then edit `~/.cabal/config` and modify the `remote-repo*` lines; comment out the originals as we revert this change later:
 
-## Build
+    remote-repo: hackage.haskell.org:http://hackage.haskell.org/packages/archive
+    remote-repo-cache: /home/cies/.cabal/packages-hackage-tmp
 
-Build the haskell-mode Elisp:
+Now run `cabal update` to load the package list from Hackage.
 
-    $ cd packages/haskell-mode/
-    $ make
 
-Build the structured-haskell-mode Elisp:
+### Now install the packages (for everyone)
 
-    $ cd packages/structured-haskell-mode/elisp/
-    $ make
+First install these:
+
+    cabal install packages/structured-haskell-mode/
+    cabal install packages/hindent/
+    cabal install packages/haskell-docs/
+
+Then (try to) install `ghci-ng`:
+
+    cabal install packages/ghci-ng/
+
+If you get the following error(s) when installing `ghci-ng`,
+
+    Perhaps you haven't installed the "p_dyn" libraries for package [...]?
+
+then open `ghci-ng`'s cabal file, `packages/ghci-ng/ghci-ng.cabal`,
+and remove the occurence of the `-dynamic` flag.
+
+Try installing it again, it should work now.
+
+
+### Switch back from Hackage to Stackage (only for Stackage users)
+
+Because we have created a "sandbox", the excecutables probably not
+in our `$PATH`. The following command copies the binaries to
+`/usr/local/bin`, but any other location that is in your `$PATH`
+when Emacs boots up will do (e.g.: `~/.cabal/bin`). I put mine
+in `/usr/local/bin` because I sometimes remove my `~/.cabal`.
+
+    sudo sh -c "cp \
+      packages/structured-haskell-mode/dist/dist-sandbox-48262afe/build/structured-haskell-mode/structured-haskell-mode \
+      packages/hindent/dist/dist-sandbox-48262afe/build/hindent/hindent \
+      packages/haskell-docs/dist/dist-sandbox-48262afe/build/haskell-docs/haskell-docs \
+      packages/ghci-ng/dist/dist-sandbox-48262afe/build/ghci-ng/ghci-ng \
+      /usr/local/bin"
+
+Now once again edit your `~/.cabal/config` file, change the
+`remote-repo*` lines back to what they were, and run `cabal update`
+to select your initial Stackage snapshot's package list.
+(not sure if `cabal update` is really needed, but it won't do any harm)
+
+
+## Build Elisp packages
+
+Build the `haskell-mode` and `structured-haskell-mode` Elisp:
+
+    (cd packages/haskell-mode/; make)
+    (cd packages/structured-haskell-mode/elisp/; make)
+
 
 ## Running
 
 In the repo directory, run this:
 
-    $ emacs -Q -l init.el
+    emacs -Q -l init.el
 
 The `-Q` is short for "quick" and means it will not use any existing
 Emacs configuration that you already have.
@@ -109,19 +161,21 @@ you can put the following in your `~/.emacs` file:
 
 Then run Emacs from the terminal as simply:
 
-    $ emacs & disown
+    emacs & disown
 
-You need to run it from the terminal to ensure that your `PATH` is
+You need to run it from the terminal to ensure that your `$PATH` is
 configured, otherwise it's more difficult to setup.
+
 
 ## Using
 
 You need a Cabal project, `cabal repl` does not work without one. If
 you do not have a `.cabal` file, just make a dummy one.
 
-For convenience I made a sandbox for random Haskell playing:
+For convenience I made a sandbox repository (not to be confused with
+a cabal sandbox) for random Haskell playing:
 
-    $ git clone https://github.com/chrisdone/haskell-sandbox.git
+    git clone https://github.com/chrisdone/haskell-sandbox.git
 
 Open up `src/Main.hs`. Run `C-c C-l` to bring up the REPL and start a
 session. It'll prompt with something like:
@@ -149,10 +203,11 @@ fib 1 = 1
 fib n = fib (n - 1) + fib (n - 2)
 ```
 
+
 ## Structured editing
 
-There's a fairly complete list of commands for structured editing
-[here](https://github.com/chrisdone/structured-haskell-mode/#features).
+There's a fairly complete list of commands for structured editing on
+[the structured-haskell-mode's README](https://github.com/chrisdone/structured-haskell-mode/#features).
 
 The basic gist is that your source is parsed whenever you are idle for
 half a second and then you have a "current node". That node is
@@ -165,6 +220,7 @@ Don't use `TAB` for indentation, use the structured selection and use
 `C-j` which will make a newline and indent to the right location.
 
 Don't do manual formatting. See next section.
+
 
 ## Pretty printing
 
@@ -217,10 +273,12 @@ If you select the `n - 1` and hit `C-c C-t` you'll see this:
 n - 1 :: Integer
 ```
 
+
 ## Go to definition
 
 If you go to the `n` in `n - 2` and run `M-.` it will jump to the `n`
 in `fib n`.
+
 
 ## Highlight uses
 
@@ -228,6 +286,7 @@ If you go to the `n` in `n - 2` and run `C-?` it will highlight all
 the occurrences. You can hit `TAB` to go forwards in the results, or
 `S-TAB` to go backwards. Hit `RET` to stop where you are, or `C-g` to
 stop and go back to where you were originally.
+
 
 ## Interactive REPL
 
@@ -254,6 +313,7 @@ The results are syntax coloured automatically.
 If there is ever a problem with the REPL, you can just hit `C-c C-k`
 to clear it, or `M-x haskell-process-restart` to restart the whole
 thing.
+
 
 ## Cabal actions
 
@@ -286,12 +346,13 @@ You can also run `C-c c` and you will get a prompt of cabal
 commands. From here you can run `cabal bench`, `cabal test`, `cabal
 haddock`, `cabal install`, etc.
 
+
 ## Inserting types
 
 If we've loaded the Main module, then we can correct that missing
 signature by going to the `main` identifier and running `C-u C-c
 C-t`. This is like normal `C-c C-t`, except it will insert the type
-for you. You should now have:
+for you. You should  now have:
 
 ``` haskell
 main :: IO ()
@@ -386,6 +447,7 @@ And a prompt like this:
 
 See the next section.
 
+
 ## Dependency adding
 
 With this prompt,
@@ -406,12 +468,14 @@ changed; restart GHCi process? (y or n)" Hit `y`.
 It will restart the process and compile `Main.hs`. See the next
 section for the next prompt.
 
+
 ## Redundant imports
 
 If you followed the previous step, you should have a redundant import
 for `Control.Monad.Reader`. It will prompt whether to remove it. Let's
 remove it for now, but we'll automatically add it back later. Hit `y`
 on all the redundant import prompts.
+
 
 ## Automatically adding imports
 

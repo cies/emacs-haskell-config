@@ -1,4 +1,6 @@
-# emacs-haskell-config
+emacs-haskell-config
+====================
+
 
 The repo contains an Emacs configuration for developing with Haskell.
 It is accompanied with a guide (this README) on how to install its
@@ -84,10 +86,15 @@ global environment.
     cd emacs-haskell-config
     cabal sanbox init
 
-Then edit `~/.cabal/config` and modify the `remote-repo*` lines; comment out the originals as we revert this change later:
+Then edit `~/.cabal/config` and modify the `remote-repo*` lines;
+comment out the originals as we revert this change later:
 
     remote-repo: hackage.haskell.org:http://hackage.haskell.org/packages/archive
     remote-repo-cache: /home/cies/.cabal/packages-hackage-tmp
+
+Also make sure that both `library-profiling` and
+`executable-profiling` are either commented out or `False`, as
+otherwise `ghci-ng` will not compile.
 
 Now run `cabal update` to load the package list from Hackage.
 
@@ -99,47 +106,46 @@ First install these:
     cabal install packages/structured-haskell-mode/
     cabal install packages/hindent/
     cabal install packages/haskell-docs/
-
-Then (try to) install `ghci-ng`:
-
     cabal install packages/ghci-ng/
 
-If you get the following error(s) when installing `ghci-ng`,
+If you see the following error when installing `ghci-ng`,
 
     Perhaps you haven't installed the "p_dyn" libraries for package [...]?
 
-then open `ghci-ng`'s cabal file, `packages/ghci-ng/ghci-ng.cabal`,
-and remove the occurence of the `-dynamic` flag.
-
-Try installing it again, it should work now.
+you probabaly still have profiling turned on in your `~/.cabal/config`.
 
 
-### Switch back from Hackage to Stackage (only for Stackage users)
+### Make the executables available
 
 Because we have created a "sandbox", the excecutables probably not
 in our `$PATH`. The following command copies the binaries to
 `/usr/local/bin`, but any other location that is in your `$PATH`
 when Emacs boots up will do (e.g.: `~/.cabal/bin`). I put mine
-in `/usr/local/bin` because I sometimes remove my `~/.cabal`.
+in `/usr/local/bin` as I occasionally purge my `~/.cabal`.
 
-    sudo sh -c "cp \
-      packages/structured-haskell-mode/dist/dist-sandbox-48262afe/build/structured-haskell-mode/structured-haskell-mode \
-      packages/hindent/dist/dist-sandbox-48262afe/build/hindent/hindent \
-      packages/haskell-docs/dist/dist-sandbox-48262afe/build/haskell-docs/haskell-docs \
-      packages/ghci-ng/dist/dist-sandbox-48262afe/build/ghci-ng/ghci-ng \
-      /usr/local/bin"
+    sudo sh -c "for p in structured-haskell-mode \\
+                         hindent \\
+                         haskell-docs \\
+                         ghci-ng; do \\
+                  cp packages/\$p/dist/dist-sandbox-*/build/\$p/\$p \\
+                        /usr/local/bin; \\
+                  done"
+
+
+### Switch back from Hackage to Stackage (only for Stackage users)
 
 Now once again edit your `~/.cabal/config` file, change the
-`remote-repo*` lines back to what they were, and run `cabal update`
-to select your initial Stackage snapshot's package list.
-(not sure if `cabal update` is really needed, but it won't do any harm)
+`remote-repo*` lines back to what they were.
+
+In case you switched off profiling, you might also want to turn
+that back on.
 
 
 ## Build Elisp packages
 
 Build the `haskell-mode` and `structured-haskell-mode` Elisp:
 
-    (cd packages/haskell-mode/; make)
+    (cd packages/haskell-mode/; make compile haskell-mode-autoloads.el)
     (cd packages/structured-haskell-mode/elisp/; make)
 
 
